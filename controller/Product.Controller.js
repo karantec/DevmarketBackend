@@ -1,43 +1,63 @@
 const { cloudinary } = require("../config/cloudinary");
 const Product = require("../models/Product.model");
 
-// **Create a New Blog Post with Image Upload**
+// **Create a New Product with Multiple Image Uploads**
 const createProduct = async (req, res) => {
   try {
-    const { name, category,image,description, price, liveLink } = req.body;
+    const { name, category, description, price, liveLink, images } = req.body;
 
-    // Check if a team member with the same name & position already exists
+    // Check if a product with the same name already exists
     const existingProduct = await Product.findOne({ name });
 
     if (existingProduct) {
-      return res.status(400).json({ message: "Team member already exists" });
+      return res.status(400).json({ message: "Product already exists" });
     }
 
-    // Create new team member
-    const newProduct = new Product({name, category,image,description, price, liveLink  });
+    let imageUrls = [];
+
+    // Upload multiple images to Cloudinary if provided
+    if (images && images.length > 0) {
+      const uploadPromises = images.map((image) => cloudinary.uploader.upload(image, { folder: "products" }));
+      const uploadResults = await Promise.all(uploadPromises);
+      imageUrls = uploadResults.map((result) => result.secure_url);
+    }
+
+    // Create new product
+    const newProduct = new Product({
+      name,
+      category,
+      images: imageUrls,  // Store multiple image URLs
+      description,
+      price,
+      liveLink
+    });
+
     await newProduct.save();
 
-    res.status(201).json({ message: "product created successfully", product: newProduct });
+    res.status(201).json({ message: "Product created successfully", product: newProduct });
   } catch (error) {
-    console.error("Error in createTeam:", error);
+    console.error("Error in createProduct:", error);
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
 
+// **Get All Products**
 const getAllProducts = async (req, res) => {
   try {
-    const Products = await Product.find();
+    const products = await Product.find();
 
-    if (!Products.length) {
-      return res.status(404).json({ message: "No Product posts found" });
+    if (!products.length) {
+      return res.status(404).json({ message: "No products found" });
     }
 
-    res.status(200).json(Products);
+    res.status(200).json(products);
   } catch (error) {
     console.error("Error:", error);
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
+
+// **Get Product by ID**
 const getProductById = async (req, res) => {
   try {
     const { id } = req.params;
@@ -58,19 +78,20 @@ const getProductById = async (req, res) => {
 const updateProduct = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, category,image,description, price, LiveLink } = req.body;
+    const { name, category, description, price, liveLink, images } = req.body;
 
-    let imageUrl = "";
+    let imageUrls = [];
 
-    // Upload new image if provided
-    if (image) {
-      const result = await cloudinary.uploader.upload(image, { folder: "products" });
-      imageUrl = result.secure_url;
+    // Upload new images if provided
+    if (images && images.length > 0) {
+      const uploadPromises = images.map((image) => cloudinary.uploader.upload(image, { folder: "products" }));
+      const uploadResults = await Promise.all(uploadPromises);
+      imageUrls = uploadResults.map((result) => result.secure_url);
     }
 
     const updatedProduct = await Product.findByIdAndUpdate(
       id,
-      { name, category, image: imageUrl, description, price, LiveLink , updatedAt: Date.now() },
+      { name, category, images: imageUrls, description, price, liveLink, updatedAt: Date.now() },
       { new: true }
     );
 
@@ -102,5 +123,4 @@ const deleteProduct = async (req, res) => {
   }
 };
 
-
-module.exports = { createProduct, getAllProducts,getProductById, updateProduct, deleteProduct };
+module.exports = { createProduct, getAllProducts, getProductById, updateProduct, deleteProduct };
