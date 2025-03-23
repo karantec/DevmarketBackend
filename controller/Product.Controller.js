@@ -4,7 +4,7 @@ const Product = require("../models/Product.model");
 // **Create a New Blog Post with Image Upload**
 const createProduct = async (req, res) => {
   try {
-    const { name, category,image,description } = req.body;
+    const { name, category,image,description, price, liveLink } = req.body;
 
     // Check if a team member with the same name & position already exists
     const existingProduct = await Product.findOne({ name });
@@ -14,7 +14,7 @@ const createProduct = async (req, res) => {
     }
 
     // Create new team member
-    const newProduct = new Product({name, category,image,description });
+    const newProduct = new Product({name, category,image,description, price, liveLink  });
     await newProduct.save();
 
     res.status(201).json({ message: "product created successfully", product: newProduct });
@@ -58,7 +58,7 @@ const getProductById = async (req, res) => {
 const updateProduct = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, category, image, description } = req.body;
+    const { name, category,image,description, price, LiveLink } = req.body;
 
     let imageUrl = "";
 
@@ -70,7 +70,7 @@ const updateProduct = async (req, res) => {
 
     const updatedProduct = await Product.findByIdAndUpdate(
       id,
-      { name, category, image: imageUrl, description, updatedAt: Date.now() },
+      { name, category, image: imageUrl, description, price, LiveLink , updatedAt: Date.now() },
       { new: true }
     );
 
